@@ -1,0 +1,27 @@
+{
+  "name": "graph",
+  "version": "1.0.0",
+  "description": "Graphical visualization of HealthspanWiki",
+  "main": "script.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "tsc && node dist/script.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/healthspanwiki/graph.git"
+  },
+  "keywords": [
+    "graph",
+    "healthspan"
+  ],
+  "author": "Alex Godfrey",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/healthspanwiki/graph/issues"
+  },
+  "homepage": "https://github.com/healthspanwiki/graph#readme",
+  "devDependencies": {
+    "typescript": "^5.1.3"
+  }
+}
