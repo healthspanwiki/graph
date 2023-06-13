@@ -36,36 +36,80 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
     }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-function getPageTitles(continueObj) {
+exports.get10PageContents = void 0;
+function getPageContents(titles) {
     return __awaiter(this, void 0, void 0, function () {
-        var url, titles;
+        var pages, i, tenTitles, tenPages, _i, tenPages_1, page;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
-                    url = 'https://healthspan.wiki/w/api.php?action=query&format=json&list=allpages&aplimit=500&maxage=0&smaxage=0';
-                    if (continueObj && continueObj.apcontinue) {
-                        url += '&apcontinue=' + encodeURIComponent(continueObj.apcontinue);
+                    pages = [];
+                    i = 0;
+                    _a.label = 1;
+                case 1:
+                    if (!(i < titles.length)) return [3 /*break*/, 4];
+                    tenTitles = titles.splice(i, Math.min(i + 10, titles.length));
+                    return [4 /*yield*/, get10PageContents(tenTitles)];
+                case 2:
+                    tenPages = _a.sent();
+                    console.log(tenPages);
+                    for (_i = 0, tenPages_1 = tenPages; _i < tenPages_1.length; _i++) {
+                        page = tenPages_1[_i];
+                        pages.push(page);
                     }
-                    titles = [];
+                    _a.label = 3;
+                case 3:
+                    i += 10;
+                    return [3 /*break*/, 1];
+                case 4: return [2 /*return*/, pages];
+            }
+        });
+    });
+}
+exports.default = getPageContents;
+/**
+ * Get the page content for up to 10 page titles.
+ *
+ * @param titles up to 10 titles to get the contents of
+ * @returns the contents of each of the 10 pages
+ */
+function get10PageContents(titles) {
+    return __awaiter(this, void 0, void 0, function () {
+        var titlesString, url, contents;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0:
+                    titlesString = titles.join('|');
+                    url = 'https://healthspan.wiki/w/api.php?action=query&prop=links|categories|revisions&rvprop=content&pllimit=max&plnamespace=0&cllimit=max&format=json&titles=' + encodeURIComponent(titlesString);
+                    contents = [];
                     return [4 /*yield*/, fetch(url)
                             .then(function (response) { return response.json(); })
                             .then(function (data) {
-                            var newPages = data.query.allpages;
-                            for (var _i = 0, newPages_1 = newPages; _i < newPages_1.length; _i++) {
-                                var newPage = newPages_1[_i];
-                                titles.push(newPage.title);
-                            }
-                            if (data.continue) {
-                                // If there's more data, fetch it
-                                getPageTitles(data.continue);
+                            var pages = Object.values(data.query.pages);
+                            for (var i = 0; i < pages.length; i++) {
+                                var page = pages[i];
+                                var content = '';
+                                var links = [];
+                                var categories = [];
+                                content = page.revisions[0]["*"];
+                                if (page.links) {
+                                    links = page.links.map(function (link) { return link.title; });
+                                }
+                                if (page.categories) {
+                                    categories = page.categories.map(function (category) { return category.title.slice(9); });
+                                }
+                                var pageFinal = { pageid: page.pageid,
+                                    title: page.title, content: content, links: links, categories: categories
+                                };
+                                contents.push(pageFinal);
                             }
                         })
                             .catch(function (error) { return console.error(error); })];
                 case 1:
                     _a.sent();
-                    return [2 /*return*/, titles];
+                    return [2 /*return*/, contents];
             }
         });
     });
 }
-exports.default = getPageTitles;
+exports.get10PageContents = get10PageContents;

@@ -1,4 +1,3 @@
-import { PageTitle } from "../types/PageTitle";
 
 interface Respect {
     apcontinue: string
@@ -10,13 +9,16 @@ export default async function getPageTitles(continueObj?: Respect) {
         url += '&apcontinue=' + encodeURIComponent(continueObj.apcontinue);
     }
 
-    const titles: PageTitle[] = []
+    const titles: string[] = []
 
     await fetch(url)
         .then(response => response.json())
         .then(data => {
-            titles.concat(data.query.allpages)
-            console.log(data.query.allpages);  // Process the pages
+            const newPages = data.query.allpages
+            for (const newPage of newPages) {
+                titles.push(newPage.title)
+            }
+            
             if (data.continue) {
                 // If there's more data, fetch it
                 getPageTitles(data.continue);

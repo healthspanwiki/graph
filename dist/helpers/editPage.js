@@ -36,36 +36,35 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
     }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-function getPageTitles(continueObj) {
+function editPage(fetch, title, content, token) {
     return __awaiter(this, void 0, void 0, function () {
-        var url, titles;
+        var url, params, response, data;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
-                    url = 'https://healthspan.wiki/w/api.php?action=query&format=json&list=allpages&aplimit=500&maxage=0&smaxage=0';
-                    if (continueObj && continueObj.apcontinue) {
-                        url += '&apcontinue=' + encodeURIComponent(continueObj.apcontinue);
-                    }
-                    titles = [];
-                    return [4 /*yield*/, fetch(url)
-                            .then(function (response) { return response.json(); })
-                            .then(function (data) {
-                            var newPages = data.query.allpages;
-                            for (var _i = 0, newPages_1 = newPages; _i < newPages_1.length; _i++) {
-                                var newPage = newPages_1[_i];
-                                titles.push(newPage.title);
-                            }
-                            if (data.continue) {
-                                // If there's more data, fetch it
-                                getPageTitles(data.continue);
-                            }
-                        })
-                            .catch(function (error) { return console.error(error); })];
+                    url = "https://healthspan.wiki/w/api.php";
+                    params = new URLSearchParams();
+                    params.append("action", "edit");
+                    params.append("title", title);
+                    params.append("text", content);
+                    params.append("token", token);
+                    params.append("format", "json");
+                    return [4 /*yield*/, fetch(url, { method: "POST", body: params })];
                 case 1:
-                    _a.sent();
-                    return [2 /*return*/, titles];
+                    response = _a.sent();
+                    return [4 /*yield*/, response.json()];
+                case 2:
+                    data = _a.sent();
+                    console.log(data);
+                    if (data && data.edit && data.edit.result === "Success") {
+                        console.log("Page ".concat(title, " edited successfully."));
+                    }
+                    else {
+                        console.log("Failed to edit page ".concat(title, "."));
+                    }
+                    return [2 /*return*/];
             }
         });
     });
 }
-exports.default = getPageTitles;
+exports.default = editPage;

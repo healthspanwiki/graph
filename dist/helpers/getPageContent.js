@@ -36,36 +36,46 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
     }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-function getPageTitles(continueObj) {
+/**
+ * Get the page content for up to 10 page titles.
+ *
+ * @param titles up to 10 titles to get the contents of
+ * @returns the contents of each of the 10 pages
+ */
+function getPageContents(titles) {
     return __awaiter(this, void 0, void 0, function () {
-        var url, titles;
+        var titlesString, url, contents;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
-                    url = 'https://healthspan.wiki/w/api.php?action=query&format=json&list=allpages&aplimit=500&maxage=0&smaxage=0';
-                    if (continueObj && continueObj.apcontinue) {
-                        url += '&apcontinue=' + encodeURIComponent(continueObj.apcontinue);
-                    }
-                    titles = [];
+                    titlesString = titles.join('|');
+                    url = 'https://healthspan.wiki/w/api.php?action=query&prop=links|categories|revisions&rvprop=content&pllimit=max&cllimit=max&format=json&titles=' + encodeURIComponent(titlesString);
+                    contents = [];
                     return [4 /*yield*/, fetch(url)
                             .then(function (response) { return response.json(); })
                             .then(function (data) {
-                            var newPages = data.query.allpages;
-                            for (var _i = 0, newPages_1 = newPages; _i < newPages_1.length; _i++) {
-                                var newPage = newPages_1[_i];
-                                titles.push(newPage.title);
-                            }
-                            if (data.continue) {
-                                // If there's more data, fetch it
-                                getPageTitles(data.continue);
+                            var pages = Object.values(data.query.pages);
+                            for (var i = 0; i < pages.length; i++) {
+                                var page = pages[i];
+                                var content = '';
+                                var links = [];
+                                var categories = [];
+                                console.log(data.query.pages);
+                                content = page.revisions[0]["*"];
+                                links = page.links.map(function (link) { return link['*']; });
+                                // console.log(data.parse.categories)
+                                categories = page.categories.map(function (category) { return category['*']; });
+                                contents.push({ pageid: page.pageid,
+                                    title: page.title, content: content, links: links, categories: categories
+                                });
                             }
                         })
                             .catch(function (error) { return console.error(error); })];
                 case 1:
                     _a.sent();
-                    return [2 /*return*/, titles];
+                    return [2 /*return*/, contents];
             }
         });
     });
 }
-exports.default = getPageTitles;
+exports.default = getPageContents;
