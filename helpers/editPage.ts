@@ -1,4 +1,14 @@
-export default async function editPage(fetch: any, title: string, content: string, token: string) {
+import { Logger } from 'winston';
+
+/**
+ * Edit the page to add 
+ * @param fetch fetcher needed for cookie management
+ * @param title title of the page to edit
+ * @param content content of the page to edit
+ * @param token token for editing the page
+ * @param logger winston logger instance
+ */
+export default async function editPage(fetch: any, title: string, content: string, token: string, logger: Logger) {
     const url = `https://healthspan.wiki/w/api.php`;
     const params = new URLSearchParams();
 
@@ -11,11 +21,11 @@ export default async function editPage(fetch: any, title: string, content: strin
     const response = await fetch(url, { method: "POST", body: params });
     const data = await response.json();
 
-    console.log(data)
-    
+    logger.info(JSON.stringify(data));
+
     if (data && data.edit && data.edit.result === "Success") {
-        console.log(`Page ${title} edited successfully.`);
+        logger.info(`Page ${title} edited successfully.`);
     } else {
-        console.log(`Failed to edit page ${title}.`);
+        logger.error(`Failed to edit page ${title}.`);
     }
 }

@@ -1,8 +1,10 @@
-
-
-
+/**
+ * Login to the healthspan wiki
+ * @param fetch fetcher needed for cookie maintenance
+ * @returns the login token
+ */
 async function getLoginToken(fetch: any): Promise<string> {
-    const loginTokenResponse = await fetch('https://healthspan.wiki/w/api.php', {
+    const loginTokenResponse = await fetch(process.env.WIKI_API_URL, {
         method: 'POST',
         headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
@@ -21,15 +23,22 @@ async function getLoginToken(fetch: any): Promise<string> {
 
     return loginToken
 }
-  
-export default async function login(fetch: any, username: string, password: string) {
+
+/**
+ * Login and get the csrf token
+ * @param fetch fetcher needed for cookie maintenance
+ * @param username bot username 
+ * @param password bot password
+ * @returns Login token 
+ */
+export default async function login(fetch: any, username: string, password: string): Promise<string> {
     const loginToken = (await getLoginToken(fetch))
 
     console.log(loginToken)
 
     console.log(username, password)
 
-    const loginResponse = await fetch('https://healthspan.wiki/w/api.php', {
+    const loginResponse = await fetch(process.env.WIKI_API_URL, {
         method: 'POST',
         headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
@@ -44,7 +53,6 @@ export default async function login(fetch: any, username: string, password: stri
     });
 
     const loginData = await loginResponse.json();
-    console.log(loginData)
     // @ts-ignore
     if (loginData.login.result === "Success") {
         return await getCsrfToken(fetch);
@@ -54,8 +62,13 @@ export default async function login(fetch: any, username: string, password: stri
     }
 }
 
+/**
+ * Fetch the csrf token
+ * @param fetch fetcher needed for cookie maintenance
+ * @returns csrf token
+ */
 async function getCsrfToken(fetch: any) {
-    const csrfTokenResponse = await fetch('https://healthspan.wiki/w/api.php', {
+    const csrfTokenResponse = await fetch(process.env.WIKI_API_URL, {
         method: 'POST',
         headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
@@ -70,7 +83,7 @@ async function getCsrfToken(fetch: any) {
     const csrfTokenData = await csrfTokenResponse.json();
     console.log(csrfTokenData)
     // @ts-ignore
-    const csrfToken = csrfTokenData.query.tokens.csrftoken;
+    const csrfToken: string = csrfTokenData.query.tokens.csrftoken;
 
     return csrfToken;
 }  

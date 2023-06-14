@@ -1,54 +1,102 @@
 import getPageTitles from "./helpers/getPageTitles";
-import getPageContent from "./helpers/getPageContents";
 import { Page } from "./types/Page";
 import login from "./helpers/login";
 import * as dotenv from 'dotenv';
 import editPage from "./helpers/editPage";
 import makeFetchCookie from 'fetch-cookie'
 import getPageContents from "./helpers/getPageContents";
+import createMarkdownFiles from "./helpers/createMarkdownFiles";
+import { OAuth2Client } from 'google-auth-library';
+import moment from 'moment';
+import { google } from 'googleapis';
+import { deleteAllFilesInFolder, uploadFilesToFolder } from "./helpers/drive";
+import deleteMarkdownFiles from "./helpers/deleteMarkdownFiles";
+import * as winston from 'winston';
+
 dotenv.config();
+const logger = winston.createLogger({
+    level: 'info',
+    format: winston.format.json(),
+    defaultMeta: { service: 'healthspan' },
+    transports: [
+        new winston.transports.Console(),
+        new winston.transports.File({ filename: `logs/${moment().format('YYYYMMDD_HHmmss')}.log` })
+    ],
+});
 
 async function main() {
-    const titles = await getPageTitles();
-    const pages: Page[] = await getPageContents(titles)
-
-    const pageTitleSet = new Set()
-    for (const page of pages) {
-        pageTitleSet.add(page.title)
+    const botUsername = process.env.BOT_USERNAME 
+    const botPassword = process.env.BOT_PASSWORD
+    const clientId = process.env.CLIENT_ID
+    const clientSecret = process.env.CLIENT_SECRET
+    const refreshToken = process.env.REFRESH_TOKEN
+    const folderId = process.env.FOLDER_ID
+    if (!botUsername || !botPassword || !clientId || !clientSecret || !refreshToken || !folderId) {
+        logger.error("Missing environment variable(s)");
+        throw new Error("Missing environment variable(s)");
     }
 
-    const deadLinksSet = new Set<string>()
+    try {
+        const titles = await getPageTitles(logger);
+        const pages: Page[] = await getPageContents(titles, logger)
+        logger.info(`Retrieved contents for ${pages.length} pages`);
 
-    for (const page of pages) {
-        for (const link of page.links) {
-            if (!pageTitleSet.has(link)) {
-                deadLinksSet.add(link)
+        const pageTitleSet = new Set()
+        for (const page of pages) {
+            pageTitleSet.add(page.title)
+        }
+
+        const deadLinks: string[] = []
+        for (const page of pages) {
+            for (const link of page.links) {
+                if (!pageTitleSet.has(link)) {
+                    deadLinks.push(link)
+                }
             }
         }
-    }
 
+        const originalFetch = require('node-fetch');
+        const fetch = makeFetchCookie(originalFetch, new makeFetchCookie.toughCookie.CookieJar())
+        const token = await login(fetch, botUsername, botPassword)
+        logger.info("Successfully logged in to wiki");
 
-    const deadLinks: string[] = Array.from(deadLinksSet)
-
-    const originalFetch = require('node-fetch');
-    const fetch = makeFetchCookie(originalFetch, new makeFetchCookie.toughCookie.CookieJar())
-    const token = await login(fetch, process.env.BOT_USERNAME || '', process.env.BOT_PASSWORD || '')
-
-    console.log(token)
-
-    // Step 1: Append 'Red' category to pages without a category
-    for (const page of pages) {
-        if (!page.categories.includes("Red") && !page.categories.includes("Green") && !page.categories.includes("Yellow")) {
-            const content = page.content + "\n[[Category:Red]]";
-            await editPage(fetch, page.title, content, token);
+        for (const page of pages) {
+            if (!page.categories.includes("Red") && !page.categories.includes("Green") && !page.categories.includes("Yellow")) {
+                const content = page.content + "\n[[Category:Red]]";
+                await editPage(fetch, page.title, content, token, logger);
+            }
         }
-    }
+        logger.info("Category assignment completed");
 
-    // Step 2: Create new pages for deadlinks
-    for (const deadLink of deadLinks) {
-        const content = "empty\n[[Category:Red]]";
-        await editPage(fetch, deadLink, content, token);
+        for (const deadLink of deadLinks) {
+            const content = "empty\n[[Category:Red]]";
+            await editPage(fetch, deadLink, content, token, logger);
+        }
+        logger.info("Created new pages for dead links");
+
+        await createMarkdownFiles(pages)
+        logger.info("Created markdown files for all pages");
+
+        const oAuth2Client = new OAuth2Client(clientId, clientSecret);
+        oAuth2Client.setCredentials({ refresh_token: refreshToken });
+        const drive = google.drive({ version: 'v3', auth: oAuth2Client });
+
+        const markdownDirectory = './markdown'
+        await deleteAllFilesInFolder(drive, folderId);
+        logger.info("Deleted all files in the target folder");
+
+        await uploadFilesToFolder(drive, folderId, markdownDirectory);
+        logger.info("Uploaded new files to the target folder");
+
+        deleteMarkdownFiles(markdownDirectory)
+        logger.info("Deleted local markdown files");
+    } catch (error) {
+        logger.error(`Error occurred: ${error}`);
+        throw error;
     }
 }
 
-main();
+main()
+    .then(() => logger.info("Script completed successfully"))
+    .catch(err => logger.error(`Uncaught exception: ${err}`));
+

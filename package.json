@@ -29,6 +29,10 @@
   "dependencies": {
     "dotenv": "^16.1.4",
     "fetch-cookie": "^2.1.0",
-    "node-fetch": "^2.6.6"
+    "google-auth-library": "^8.8.0",
+    "googleapis": "^118.0.0",
+    "moment": "^2.29.4",
+    "node-fetch": "^2.6.6",
+    "winston": "^3.9.0"
   }
 }
