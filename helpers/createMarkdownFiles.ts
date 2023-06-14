@@ -8,7 +8,7 @@ import { Page } from '../types/Page';
 export default async function createMarkdownFiles(pages: Page[]) {
     pages.forEach((page) => {
         const markdownContent = generateMarkdownContent(page);
-        writeFileSync(`./markdown/${page.title.replace(/\s+/g, '_')}.md`, markdownContent);
+        writeFileSync(`./markdown/${page.title}.md`, markdownContent);
     });
 }
 
@@ -18,9 +18,39 @@ export default async function createMarkdownFiles(pages: Page[]) {
  * @returns the string content of the markdown file
  */
 function generateMarkdownContent(page: Page): string {
-    let markdown = `# ${page.title}\n`;
+    let markdown = '';
 
-    markdown += `Link: [${page.title}](https://healthspan.wiki/wiki/${encodeURIComponent(page.title)})\n\n`;
+    markdown += `[${page.title} - HealthspanWiki](https://healthspan.wiki/wiki/${encodeURIComponent(page.title)})\n\n`;
+
+
+    // find red, green, or yellow in page.categories and set to variables
+    let red = false;
+    let green = false;
+    let yellow = false;
+    page.categories.forEach((category) => {
+        if (category === "Red") {
+            red = true;
+        } else if (category === "Green") {
+            green = true;
+        } else if (category === "Yellow") {
+            yellow = true;
+        }
+    });
+    // pick the color to use for the markdown file
+    let color = "red";
+    if (green) {
+        color = "green";
+    } else if (yellow) {
+        color = "yellow";
+    }
+
+    if (color === "red") {
+        markdown += process.env.RED_MARKDOWN
+    } else if (color === "green") {
+        markdown += process.env.GREEN_MARKDOWN
+    } else if (color === "yellow") {
+        markdown += process.env.YELLOW_MARKDOWN
+    }
 
     if (page.categories) {
         markdown += `## Page Categories\n`;
@@ -28,17 +58,20 @@ function generateMarkdownContent(page: Page): string {
             markdown += `- ${category}\n`;
         });
         // add a new line that gives information about categories
-        markdown += `*For more information on categories, please see [[Welcome]]*\n\n`;
+        markdown += `*For more information on categories, please see [[${process.env.MARKDOWN_HOMEPAGE}]]*\n\n`;
     }
 
     if (page.links) {
-        markdown += `\n## This page links to\n`;
+        markdown += `## Links\n`;
         if (page.links.length === 0) {
             markdown += `Nothing yet!\n`;
+        } else {
+            page.links.forEach((link) => {
+                markdown += `[[${link}]] | `;
+            });
+            markdown = markdown.slice(0, -3);
         }
-        page.links.forEach((link) => {
-            markdown += `- [${link}](https://healthspan.wiki/wiki/${encodeURIComponent(link)})\n`;
-        });
+        
     }
 
     return markdown;

@@ -11,7 +11,7 @@ export default async function getPageContents(titles: string[], logger: Logger):
     const pages: Page[] = []
 
     for (let i = 0; i< titles.length; i+=10) {
-        const tenTitles = titles.splice(i, Math.min(i+10, titles.length))
+        const tenTitles = titles.slice(i, i+10); // Use slice instead of splice
         const tenPages = await get10PageContents(tenTitles, logger)
         for (const page of tenPages) {
             pages.push(page)

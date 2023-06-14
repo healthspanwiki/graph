@@ -16,24 +16,28 @@ export default async function getPageTitles(logger: Logger, continueObj?: Respec
         url += '&apcontinue=' + encodeURIComponent(continueObj.apcontinue);
     }
 
-    const titles: string[] = []
+    const titles: string[] = [];
 
     await fetch(url)
         .then(response => response.json())
         .then(data => {
-            const newPages = data.query.allpages
+            const newPages = data.query.allpages;
+
             for (const newPage of newPages) {
-                titles.push(newPage.title)
+                titles.push(newPage.title);
             }
-            
+
             if (data.continue) {
                 // If there's more data, fetch it
                 getPageTitles(logger, data.continue);
             }
 
-            logger?.info(`Page titles fetched, fetched ${newPages.length} titles.`);
+            logger.info(`Current API continue parameter: ${continueObj ? continueObj.apcontinue : 'N/A'}`);
+            logger.info(`Current fetch URL: ${url}`);
+            logger.info(`Number of titles fetched in this call: ${newPages.length}`);
+            logger.info(`Total number of titles fetched so far: ${titles.length}`);
         })
-        .catch(error => logger?.error(`Error fetching page titles: ${error.message}`));
+        .catch(error => logger.error(`Error fetching page titles: ${error.message}`));
 
-    return titles
+    return titles;
 }
