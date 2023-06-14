@@ -8,7 +8,8 @@ import { Page } from '../types/Page';
 export default async function createMarkdownFiles(pages: Page[]) {
     pages.forEach((page) => {
         const markdownContent = generateMarkdownContent(page);
-        writeFileSync(`./markdown/${page.title}.md`, markdownContent);
+        // change the below line to replace spaces with underscores
+        writeFileSync(`./markdown/${page.title.replace(/\s+/g, '_')}.md`, markdownContent);    
     });
 }
 
@@ -18,7 +19,7 @@ export default async function createMarkdownFiles(pages: Page[]) {
  * @returns the string content of the markdown file
  */
 function generateMarkdownContent(page: Page): string {
-    let markdown = '';
+    let markdown = '# ' + page.title + '\n\n';
 
     markdown += `[${page.title} - HealthspanWiki](https://healthspan.wiki/wiki/${encodeURIComponent(page.title)})\n\n`;
 
