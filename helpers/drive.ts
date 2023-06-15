@@ -1,6 +1,10 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
+interface File {
+    id: string;
+}
+
 /**
  * Deletes all files in a folder
  * @param drive drive object from googleapis
@@ -12,14 +16,36 @@ export async function deleteAllFilesInFolder(drive: any, folderId: string) {
         q: `'${folderId}' in parents`,
     });
 
-    // Iterate over each file and delete it
-    for (let file of res.data.files || []) {
-        await drive.files.delete({
-            fileId: file.id!,
-        });
-        console.log(`Deleted file ${file.id}`);
+    const files = res.data.files || [];
+
+    // Split files array into chunks of 10
+    const chunks = Array(Math.ceil(files.length / 10)).fill(0).map((_, index) => index * 10).map(begin => files.slice(begin, begin + 10));
+
+    // For each chunk (containing max 10 files)
+    for (let chunk of chunks) {
+        // Delete the files in this chunk
+        await Promise.all(chunk.map((file: File) => {
+            return new Promise<void>((resolve, reject) => {
+                drive.files.delete({
+                    fileId: file.id,
+                }, (err: any) => {
+                    if (err) {
+                        console.log(`Error deleting file ${file.id}: ${err}`);
+                        reject(err);
+                    } else {
+                        console.log(`Deleted file ${file.id}`);
+                        resolve();
+                    }
+                });
+            });
+        }));
+
+        // After deleting a chunk of files, wait for 5 seconds
+        await new Promise(resolve => setTimeout(resolve, parseInt(process.env.UPLOAD_DELAY || '5000')))
     }
 }
+
+
 
 /**
  * Uploads all files in a folder to google drive
@@ -28,33 +54,41 @@ export async function deleteAllFilesInFolder(drive: any, folderId: string) {
  * @param directoryPath path where the files to upload are
  */
 export async function uploadFilesToFolder(drive: any, folderId: string, directoryPath: string) {
-    fs.readdir(directoryPath, (err, files) => {
-        if (err) {
-            console.log(`Unable to read directory: ${err}`);
-            return;
-        }
+    const files = fs.readdirSync(directoryPath);
 
-        // Iterate over each file in the local directory
-        for (let file of files) {
+    // Split files array into chunks of 10
+    const chunks = Array(Math.ceil(files.length / 10)).fill(0).map((_, index) => index * 10).map(begin => files.slice(begin, begin + 10));
+
+    // For each chunk (containing max 10 files)
+    for (let chunk of chunks) {
+        // Upload the files in this chunk
+        await Promise.all(chunk.map(file => {
             const filePath = path.join(directoryPath, file);
 
             // Create a new file and upload the content
-            drive.files.create({
-                requestBody: {
-                    name: file,
-                    parents: [folderId],
-                },
-                media: {
-                    mimeType: 'text/markdown',
-                    body: fs.createReadStream(filePath),
-                },
-            }, (err: any, file: any) => {
-                if (err) {
-                    console.log(`Error uploading file ${filePath}: ${err}`);
-                } else {
-                    console.log(`Uploaded file ${filePath} to Drive with ID: ${file.data.id}`);
-                }
+            return new Promise((resolve, reject) => {
+                drive.files.create({
+                    requestBody: {
+                        name: file,
+                        parents: [folderId],
+                    },
+                    media: {
+                        mimeType: 'text/markdown',
+                        body: fs.createReadStream(filePath),
+                    },
+                }, (err: any, file: any) => {
+                    if (err) {
+                        console.log(`Error uploading file ${filePath}: ${err}`);
+                        reject(err);
+                    } else {
+                        console.log(`Uploaded file ${filePath} to Drive with ID: ${file.data.id}`);
+                        resolve(file.data.id);
+                    }
+                });
             });
-        }
-    });
+        }));
+
+        // After uploading a chunk of files, wait for 5 seconds
+        await new Promise(resolve => setTimeout(resolve, parseInt(process.env.UPLOAD_DELAY || '5000')));
+    }
 }

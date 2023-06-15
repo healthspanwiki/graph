@@ -68,7 +68,7 @@ function generateMarkdownContent(page: Page): string {
             markdown += `Nothing yet!\n`;
         } else {
             page.links.forEach((link) => {
-                markdown += `[[${link}]] | `;
+                markdown += `[[${link.replace(/\s+/g, '_')}]] | `;
             });
             markdown = markdown.slice(0, -3);
         }

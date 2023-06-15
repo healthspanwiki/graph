@@ -69,10 +69,22 @@ async function main() {
         logger.info("Category assignment completed");
 
         for (const deadLink of deadLinks) {
-            const content = "empty\n[[Category:Red]]";
+            const content = "\n[[Category:Red]]";
             await editPage(fetch, deadLink, content, token, logger);
         }
         logger.info("Created new pages for dead links");
+
+        // create fake pages for all dead links and add to pages array
+        for (const deadLink of deadLinks) {
+            const fakePage: Page = {
+                pageid: 0,
+                title: deadLink,
+                content: " ",
+                links: [],
+                categories: ["Red"]
+            }
+            pages.push(fakePage)
+        }
 
         await createMarkdownFiles(pages)
         logger.info("Created markdown files for all pages");
